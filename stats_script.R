@@ -35,15 +35,17 @@ str(ingatraits)  # checking the data loaded properly
 # creating a histogram of leaf area 
 # checking distribution of data at a variety of binwidths 
 (leafarea_hist <- ggplot(ingatraits, aes(x = Leaf_Area)) +
-                    xlab("Leaf Area (cm^2)") +
+                    xlab(expression(paste("Leaf Area", ' ', (cm^-2), sep = ''))) +
                     ylab("Frequency") +
                     geom_histogram(binwidth = 5,
                                    color = "black") +
                     theme_classic() +
+                    theme(axis.text.x = element_text(margin = margin(b = 2)),
+                          axis.text.y = element_text(margin = margin(l = 2))) +
                     scale_y_continuous(expand = c(0,0)))
 
 (leafarea_hist2 <- ggplot(ingatraits, aes(x = Leaf_Area)) +
-                      xlab("Leaf Area (cm^2)") +
+                      xlab(expression(paste("Leaf Area", ' ', (cm^-2), sep = ''))) +
                       ylab("Frequency") +
                       geom_histogram(binwidth = 10,
                                      color = "black") +
@@ -51,7 +53,7 @@ str(ingatraits)  # checking the data loaded properly
                       scale_y_continuous(expand = c(0,0)))
 
 (leafarea_hist3 <- ggplot(ingatraits, aes(x = Leaf_Area)) +
-                      xlab("Leaf Area (cm^2)") +
+                      xlab(expression(paste("Leaf Area", ' ', (cm^-2), sep = ''))) +
                       ylab("Frequency") +
                       geom_histogram(binwidth = 30,
                                      color = "black") +
@@ -69,7 +71,7 @@ ingatraits <- ingatraits %>%
                   mutate(logLeaf_Area = log(Leaf_Area))
 
 (log_hist <- ggplot(ingatraits, aes(x = logLeaf_Area)) +
-                xlab("log(Leaf Area) (cm^2)") +
+                xlab(expression(paste("log(Leaf Area)", ' ', (cm^-2), sep = ''))) +
                 ylab("Frequency") +
                 geom_histogram(binwidth = 0.15,
                                color = "black") +
