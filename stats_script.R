@@ -12,7 +12,7 @@
 #    - evaluate the model (normality of residuals, heteroskedasticity) and improve it 
 # 3. multiple explanatory variables 
 #    - make a scatter plot of leaf [P] vs. leaf [C] with habitat type as 'shape'
-#    - split all the species into 2 habitat groups: ADD WHICH
+#    - split all the species into 2 habitat groups: floodplain & upland+generalist
 #    - make a model with habitat group and leaf [C] as predictors of leaf [P]
 #    - conduct as ANOVA using the model 
 # are there tradeoffs between the investment in chemical defences vs in physical ones?
@@ -118,6 +118,10 @@ p_hab <- lm(P_Leaf ~ Habitat, data = chem_na)
 p_hab_anova <- anova(p_hab)
 p_hab_anova
 
+# conducting a Tukey Test to further investigate the differences between habitats
+p_hab_tukey <- TukeyHSD(aov(lm(P_Leaf ~ Habitat, data = chem_na)))
+p_hab_tukey
+
 # checking for normality of residuals and heteroskedasticity 
 hist(residuals(p_hab))   # could potentially be normally distributed
 shapiro.test(residuals(p_hab))    # p-value > 0.05, the residuals ARE normally distribued
@@ -129,18 +133,37 @@ bptest(p_hab)   # p-value < 0.05, there IS heteroskedasticity in the model
 oneway.test(P_Leaf ~ Habitat, data = chem_na, var.equal=FALSE)
 
 
+
 ## EXERCISE 3: MULTIPLE EXPLANATORY VARIABLES ----
 # plotting leaf [P] vs leaf [C], with habitat type indicated
 (chem_plot <- ggplot(chem_na, aes(x = C_Leaf, y = P_Leaf, shape = Habitat, color = Habitat)) +
-                geom_point() +
+                geom_point(size = 2.5) +
                 stat_smooth(method = lm, se = FALSE) +
                 xlab("Leaf [C]") +
                 ylab("Leaf [P]") +             
                 theme_classic() +
                 theme(axis.title.x = element_text(margin = margin(t = 10)),
                       axis.title.y = element_text(margin = margin(r = 10))) +
-                scale_color_npg())
+                scale_color_npg(labels = c("Floodplain", "Generalist", "Upland")) +
+                scale_shape_discrete(labels = c("Floodplain", "Generalist", "Upland")))
 
+ggsave(chem_plot, file = "leafC_P_plot.png", width = 6, height = 4, units = c("in"),
+       path = "Figures/")
 
+# combining upland and generalist species into a single habitat category = mixed
+chem_na <- chem_na %>% 
+              mutate(Habitat_new = str_replace_all(Habitat, c("floodplain" = "floodplain",
+                                                              "upland" = "mixed",
+                                                              "generalist" = "mixed")))
 
+# making a model new habitat groups and leaf [C] as predictors of leaf [P]
+p_hab_c <- lm(P_Leaf ~ Habitat_new + C_Leaf, data = chem_na)
+p_hab_c_int <- lm(P_Leaf ~ Habitat_new*C_Leaf, data = chem_na)
 
+AIC(p_hab_c, p_hab_c_int)  # p_hab_c_int is just >2 AIC units lower than p_hab_c
+
+library(car)
+
+# conducting an ANCOVA (since the predictors are 1 categorical and 1 continuous variable)
+int_ancova <- aov(p_hab_c_int)
+summary.lm(int_ancova)
