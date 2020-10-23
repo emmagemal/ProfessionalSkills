@@ -42,8 +42,8 @@ str(ingatraits)  # checking the data loaded properly
                     geom_histogram(binwidth = 5,
                                    color = "black") +
                     theme_classic() +
-                    theme(axis.text.x = element_text(margin = margin(b = 2)),
-                          axis.text.y = element_text(margin = margin(l = 2))) +
+                    theme(axis.title.x = element_text(margin = margin(t = 10)),
+                          axis.title.y = element_text(margin = margin(r = 10))) +
                     scale_y_continuous(expand = c(0,0)))
 
 (leafarea_hist2 <- ggplot(ingatraits, aes(x = Leaf_Area)) +
@@ -81,6 +81,8 @@ ingatraits <- ingatraits %>%
                 geom_histogram(binwidth = 0.15,
                                color = "black") +
                 theme_classic() +
+                theme(axis.title.x = element_text(margin = margin(t = 10)),
+                      axis.title.y = element_text(margin = margin(r = 10))) +
                 scale_y_continuous(expand = c(0,0)))
 
 # looks more normally distributed with the log transformation 
@@ -100,11 +102,11 @@ chem_na <- ingatraits %>%
                     geom_boxplot() +
                     theme_classic() +
                     theme(axis.title.x = element_text(margin = margin(t = 10)),
-                                  axis.title.y = element_text(margin = margin(r = 10))) +
+                          axis.title.y = element_text(margin = margin(r = 10))) +
                     scale_x_discrete(breaks = c("floodplain", "generalist", "upland"),
                                      labels = c("Floodplain", "Generalist", "Upland")) +
                     scale_fill_npg(breaks = c("floodplain", "generalist", "upland"),
-                                        labels = c("Floodplain", "Generalist", "Upland")))
+                                   labels = c("Floodplain", "Generalist", "Upland")))
 
 ggsave(p_habitat_box, file = "leafP_habitat_boxplot.png", width = 4, height = 3, units = c("in"),
        path = "Figures/")
@@ -129,7 +131,15 @@ oneway.test(P_Leaf ~ Habitat, data = chem_na, var.equal=FALSE)
 
 ## EXERCISE 3: MULTIPLE EXPLANATORY VARIABLES ----
 # plotting leaf [P] vs leaf [C], with habitat type indicated
-
+(chem_plot <- ggplot(chem_na, aes(x = C_Leaf, y = P_Leaf, shape = Habitat, color = Habitat)) +
+                geom_point() +
+                stat_smooth(method = lm, se = FALSE) +
+                xlab("Leaf [C]") +
+                ylab("Leaf [P]") +             
+                theme_classic() +
+                theme(axis.title.x = element_text(margin = margin(t = 10)),
+                      axis.title.y = element_text(margin = margin(r = 10))) +
+                scale_color_npg())
 
 
 
