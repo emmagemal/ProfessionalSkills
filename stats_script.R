@@ -1,7 +1,7 @@
 # Professional Skills Statistical Assessment
 # Emma Gemal, s1758915@sms.ed.ac.uk
 # University of Edinburgh
-# Last updated: 14 October 2020
+# Last updated: 23 October 2020
 
 
 ## WORKFLOW ----
@@ -9,6 +9,7 @@
 # do species in different habitats have different leaf chemical compositions?
 # 2. leaf phosphorous concentration vs. habitat type 
 #    - make a box plot and conduct an ANOVA
+#    - evaluate the model (normality of residuals, heteroskedasticity) and improve it 
 # 3. multiple explanatory variables 
 #    - make a scatter plot of leaf [P] vs. leaf [C] with habitat type as 'shape'
 #    - split all the species into 2 habitat groups: ADD WHICH
@@ -26,6 +27,7 @@
 library(tidyverse)
 library(ggpubr)
 library(ggsci)
+library(lmtest)
 
 # loading the data
 ingatraits <- read.csv("Inga_traits.csv")
@@ -65,6 +67,9 @@ str(ingatraits)  # checking the data loaded properly
 ggsave(leafarea_hist, file = "leafarea_histogram.png", width = 4, height = 4, units = c("in"),
        path = "Figures/")
 
+# checking for normality of leaf size using a Shapiro-Wilks test
+shapiro.test(ingatraits$Leaf_Area)   # is significant (p < 0.05), it is NOT normally distributed
+
 
 # log-transforming leaf area (adding it as a new column)
 ingatraits <- ingatraits %>% 
@@ -78,7 +83,7 @@ ingatraits <- ingatraits %>%
                 theme_classic() +
                 scale_y_continuous(expand = c(0,0)))
 
-# looks more normality distributed with the log transformation 
+# looks more normally distributed with the log transformation 
 
 ggsave(log_hist, file = "log_leafarea_hist.png", width = 4, height = 4, units = c("in"),
        path = "Figures/")
@@ -107,5 +112,25 @@ ggsave(p_habitat_box, file = "leafP_habitat_boxplot.png", width = 4, height = 3,
 
 # conducting an ANOVA to test for statistical significant differnces 
 # between leaf phosphorous concentrations of species in different habitats
-p_hab_anova <- anova(lm(P_Leaf ~ Habitat, data = chem_na))
+p_hab <- lm(P_Leaf ~ Habitat, data = chem_na)
+p_hab_anova <- anova(p_hab)
 p_hab_anova
+
+# checking for normality of residuals and heteroskedasticity 
+hist(residuals(p_hab))   # could potentially be normally distributed
+shapiro.test(residuals(p_hab))    # p-value > 0.05, the residuals ARE normally distribued
+
+plot(p_hab)   # looks like there is heteroskedasticity too (based on residuals vs fitted)
+bptest(p_hab)   # p-value < 0.05, there IS heteroskedasticity in the model
+
+# taking into account unequal variances
+oneway.test(P_Leaf ~ Habitat, data = chem_na, var.equal=FALSE)
+
+
+## EXERCISE 3: MULTIPLE EXPLANATORY VARIABLES ----
+# plotting leaf [P] vs leaf [C], with habitat type indicated
+
+
+
+
+
