@@ -14,7 +14,7 @@
 #    - make a scatter plot of leaf [P] vs. leaf [C] with habitat type as 'shape'
 #    - split all the species into 2 habitat groups: floodplain & upland+generalist
 #    - make a model with habitat group and leaf [C] as predictors of leaf [P]
-#    - conduct as ANOVA using the model 
+#    - conduct as ANCOVA using the model 
 # are there tradeoffs between the investment in chemical defences vs in physical ones?
 # 4. leaf expansion rate, leaf trichome density and presence of mevalonic acid
 #    - make a GLM of leaf expansion rate vs presence of mevalonic acid
@@ -28,6 +28,7 @@ library(tidyverse)
 library(ggpubr)
 library(ggsci)
 library(lmtest)
+library(car)
 
 # loading the data
 ingatraits <- read.csv("Inga_traits.csv")
@@ -162,8 +163,35 @@ p_hab_c_int <- lm(P_Leaf ~ Habitat_new*C_Leaf, data = chem_na)
 
 AIC(p_hab_c, p_hab_c_int)  # p_hab_c_int is just >2 AIC units lower than p_hab_c
 
-library(car)
-
 # conducting an ANCOVA (since the predictors are 1 categorical and 1 continuous variable)
 int_ancova <- aov(p_hab_c_int)
-summary.lm(int_ancova)
+Anova(int_ancova, type = "III")   # using type 3 error to try and avoid incorrect results
+summary(int_ancova)   # checking results is we use type 1 error (the default)
+
+
+# checking assumptions 
+hist(residuals(p_hab_c_int), breaks = 10)   # residuals not normally distributed
+
+plot(p_hab_c_int)   # seems like the relationship may be non-linear 
+
+# making a data frame of residuals and explanatory variables (to check for heteroskedasticity)
+resid <- residuals(p_hab_c_int)
+Habitat_new <- chem_na$Habitat_new
+C_Leaf <- chem_na$C_Leaf
+resid_df <- data.frame(resid, Habitat_new, C_Leaf)
+
+(c_resid <- ggplot(resid_df, aes(x = C_Leaf, y = resid)) +
+              geom_point(size = 2.5) +
+              theme_classic())
+
+(hab_resid <- ggplot(resid_df, aes(x = Habitat_new, y = resid)) +
+                geom_boxplot() +
+                theme_classic())
+
+bptest(p_hab_c_int)  # p > 0.05, there is no heteroskedasticity
+
+
+## EXERCISE 4: GENERALIZED LINEAR MODELS ----
+
+
+
