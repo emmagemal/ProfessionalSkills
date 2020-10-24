@@ -25,6 +25,7 @@
 
 ## LIBRARY ----
 library(tidyverse)
+library(tidyr)  # to ensure 'drop_na' is able to be run (wasn't found in tidyverse)
 library(ggpubr)
 library(ggsci)
 library(lmtest)
@@ -174,24 +175,40 @@ hist(residuals(p_hab_c_int), breaks = 10)   # residuals not normally distributed
 
 plot(p_hab_c_int)   # seems like the relationship may be non-linear 
 
-# making a data frame of residuals and explanatory variables (to check for heteroskedasticity)
-resid <- residuals(p_hab_c_int)
-Habitat_new <- chem_na$Habitat_new
-C_Leaf <- chem_na$C_Leaf
-resid_df <- data.frame(resid, Habitat_new, C_Leaf)
-
-(c_resid <- ggplot(resid_df, aes(x = C_Leaf, y = resid)) +
-              geom_point(size = 2.5) +
-              theme_classic())
-
-(hab_resid <- ggplot(resid_df, aes(x = Habitat_new, y = resid)) +
-                geom_boxplot() +
-                theme_classic())
+plot(resid(p_hab_c_int) ~ C_Leaf, data = chem_na)
+plot(resid(p_hab_c_int) ~ Habitat_new, data = chem_na)
 
 bptest(p_hab_c_int)  # p > 0.05, there is no heteroskedasticity
 
 
 ## EXERCISE 4: GENERALIZED LINEAR MODELS ----
+# removing NA values associated with trichome density and mevalonic acid (for GLM 1)
+density_na <- ingatraits %>% 
+                  drop_na(c(Trichome_Density, Mevalonic_Acid))
+
+# removing NA values associated with expansion rate and mevalonic acid (for GLM 2)
+expansion_na <- ingatraits %>% 
+                  drop_na(c(Expansion, Mevalonic_Acid))
+
+# making a GLM for trichome density and mevalonic acid
+glm_den <- glm(Mevalonic_Acid ~ Trichome_Density, data = density_na, family = binomial)
+glm_den_null <- glm(Mevalonic_Acid ~ 1, data = density_na, family = binomial)
+
+AIC(glm_den, glm_den_null)  # trichome density explains more than the null model
+summary(glm_den)   # trichome density does not significantly affect mevalonic acid presence
+
+# making a GLM for expansion rate and mevalonic acid 
+glm_exp <- glm(Mevalonic_Acid ~ Expansion, data = expansion_na, family = binomial)
+glm_exp_null <- glm(Mevalonic_Acid ~ 1, data = expansion_na, family = binomial)
+
+AIC(glm_exp, glm_exp_null)   # expansion rate explains more than the null model
+summary(glm_exp)   # expansion rate DOES significantly affect mevalonic acid presence
 
 
+# combining expansion rate and trichome density into one model 
+combo_na <- ingatraits %>% 
+                drop_na(c(Trichome_Density, Expansion, Mevalonic_Acid))
+
+glm_combo <- glm(Mevalonic_Acid ~ Expansion, data = expansion_na, family = binomial)
+glm_combo_null <- glm(Mevalonic_Acid ~ 1, data = expansion_na, family = binomial)
 
