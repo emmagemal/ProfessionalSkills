@@ -159,8 +159,7 @@ p_hab_c_int <- lm(P_Leaf ~ Habitat_new*C_Leaf, data = chem_na)
 AIC(p_hab_c, p_hab_c_int)  # p_hab_c_int is just >2 AIC units lower than p_hab_c
 
 # conducting an ANCOVA (since the predictors are 1 categorical and 1 continuous variable)
-int_ancova <- aov(p_hab_c_int)
-Anova(int_ancova, type = "III")   # using type 3 error to try and avoid incorrect results
+Anova(p_hab_c_int, type = "III")   # using type 3 error to try and avoid incorrect results
 anova(p_hab_c_int)   # checking results if we used type 1 error (the default)
 
 
@@ -177,9 +176,23 @@ ggplot(chem_na, aes(x = Habitat_new, y = resid(p_hab_c_int))) +
 
 bptest(p_hab_c_int)  # p > 0.05, there is no heteroskedasticity
 
-# removing an outlier from the dataset
-chem_na_less <- chem_na[-c(28), ]
-                                                  
+# removing some outliers from the dataset
+chem_na_less <- chem_na[-c(28, 10), ]
+p_hab_c_int2 <- lm(P_Leaf ~ Habitat_new*C_Leaf, data = chem_na_less)
+
+plot(p_hab_c_int2)
+bptest(p_hab_c_int2)  # still no heteroskedasticity
+
+# log transforming P to remove non-linearity and leftover non-normality of residuals
+p_hab_c_int3 <- lm(logP_Leaf ~ Habitat_new*C_Leaf, data = chem_na_less)
+
+plot(p_hab_c_int3)
+bptest(p_hab_c_int3)   # still no heteroskedasticity
+
+# running a new ANCOVA test
+Anova(p_hab_c_int3, type = "III") 
+anova(p_hab_c_int3)  # default of type 1 error 
+
 
 
 ## EXERCISE 4: GENERALIZED LINEAR MODELS ----
