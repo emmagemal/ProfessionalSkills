@@ -1,35 +1,18 @@
 # Professional Skills Statistical Assessment
 # Emma Gemal, s1758915@sms.ed.ac.uk
 # University of Edinburgh
-# Last updated: 23 October 2020
-
-
-## WORKFLOW ----
-# 1. histogram of leaf area and normality check of data 
-# do species in different habitats have different leaf chemical compositions?
-# 2. leaf phosphorous concentration vs. habitat type 
-#    - make a box plot and conduct an ANOVA
-#    - evaluate the model (normality of residuals, heteroskedasticity) and improve it 
-# 3. multiple explanatory variables 
-#    - make a scatter plot of leaf [P] vs. leaf [C] with habitat type as 'shape'
-#    - split all the species into 2 habitat groups: floodplain & upland+generalist
-#    - make a model with habitat group and leaf [C] as predictors of leaf [P]
-#    - conduct as ANCOVA using the model 
-# are there tradeoffs between the investment in chemical defences vs in physical ones?
-# 4. leaf expansion rate, leaf trichome density and presence of mevalonic acid
-#    - make a GLM of leaf expansion rate vs presence of mevalonic acid
-#    - make a GLM of leaf trichome density vs presence of mevalonic acid 
-#    - make a GLM incorporating both expansion rate and trichome density on mevalonic acid presence
-#    - make a FIGURE (PUT WHICH) of how the predictor variable(s) influence the response variable
+# Last updated: 25 October 2020
 
 
 ## LIBRARY ----
 library(tidyverse)
 library(tidyr)  # to ensure 'drop_na' is able to be run (wasn't found in tidyverse)
+library(stringr)  # to ensure 'str_replace_all' is able to run (wasn't found in tidyverse)
 library(ggpubr)
 library(ggsci)
 library(lmtest)
 library(car)
+library(ggiraphExtra)
 
 # loading the data
 ingatraits <- read.csv("Inga_traits.csv")
@@ -96,7 +79,7 @@ ggsave(log_hist, file = "log_leafarea_hist.png", width = 4, height = 4, units = 
 ## EXERCISE 2: BOX PLOTS & ANOVA ----
 # removing NA values for chemical concentration variables (N, C, P)
 chem_na <- ingatraits %>% 
-              drop_na(c(N_Leaf, C_Leaf, P_Leaf))
+              drop_na(c(C_Leaf, P_Leaf))
 
 # creating a box plot of leaf phosphorous concentration in different habitats 
 (p_habitat_box <- ggplot(chem_na, aes(x = Habitat, y = P_Leaf, fill = Habitat)) +
@@ -129,11 +112,22 @@ hist(residuals(p_hab))   # could potentially be normally distributed
 shapiro.test(residuals(p_hab))    # p-value > 0.05, the residuals ARE normally distribued
 
 plot(p_hab)   # looks like there is heteroskedasticity too (based on residuals vs fitted)
+              # looks like there could be some outliers in the data 
 bptest(p_hab)   # p-value < 0.05, there IS heteroskedasticity in the model
 
 # taking into account unequal variances
 oneway.test(P_Leaf ~ Habitat, data = chem_na, var.equal=FALSE)
 
+# another way to try and produce homoskedasticity (log transform)
+chem_na <- chem_na %>% 
+              mutate(logP_Leaf = log(P_Leaf))
+
+logp_hab <- lm(logP_Leaf ~ Habitat, data = chem_na) 
+plot(logp_hab)   # definitely looks better, maybe still heteroskedasticity
+bptest(logp_hab)   # p-value > 0.05, there is no longer heteroskedasticity
+
+logp_hab_anova <- anova(logp_hab)
+logp_hab_anova
 
 
 ## EXERCISE 3: MULTIPLE EXPLANATORY VARIABLES ----
@@ -167,18 +161,25 @@ AIC(p_hab_c, p_hab_c_int)  # p_hab_c_int is just >2 AIC units lower than p_hab_c
 # conducting an ANCOVA (since the predictors are 1 categorical and 1 continuous variable)
 int_ancova <- aov(p_hab_c_int)
 Anova(int_ancova, type = "III")   # using type 3 error to try and avoid incorrect results
-summary(int_ancova)   # checking results is we use type 1 error (the default)
+anova(p_hab_c_int)   # checking results if we used type 1 error (the default)
 
 
 # checking assumptions 
 hist(residuals(p_hab_c_int), breaks = 10)   # residuals not normally distributed
 
-plot(p_hab_c_int)   # seems like the relationship may be non-linear 
+plot(p_hab_c_int)  # seems like the relationship may be non-linear, or heteroskedasticity is present
+                   # there are a few outliers that may be causing non-normality 
 
-plot(resid(p_hab_c_int) ~ C_Leaf, data = chem_na)
-plot(resid(p_hab_c_int) ~ Habitat_new, data = chem_na)
+plot(resid(p_hab_c_int) ~ C_Leaf, data = chem_na)   # looks random, no patterns, maybe an outlier
+ggplot(chem_na, aes(x = Habitat_new, y = resid(p_hab_c_int))) +
+    geom_boxplot() +
+    theme_classic()     # there's an outlier 
 
 bptest(p_hab_c_int)  # p > 0.05, there is no heteroskedasticity
+
+# removing an outlier from the dataset
+chem_na_less <- chem_na[-c(28), ]
+                                                  
 
 
 ## EXERCISE 4: GENERALIZED LINEAR MODELS ----
@@ -196,6 +197,12 @@ glm_den_null <- glm(Mevalonic_Acid ~ 1, data = density_na, family = binomial)
 
 AIC(glm_den, glm_den_null)  # trichome density explains more than the null model
 summary(glm_den)   # trichome density does not significantly affect mevalonic acid presence
+30.041/26  # >1 = overdispersion in the model
+
+ggplot(density_na, aes(x = Trichome_Density, y = Mevalonic_Acid)) +
+    geom_point() +
+    theme_classic()
+plot(glm_den)
 
 # making a GLM for expansion rate and mevalonic acid 
 glm_exp <- glm(Mevalonic_Acid ~ Expansion, data = expansion_na, family = binomial)
@@ -204,11 +211,53 @@ glm_exp_null <- glm(Mevalonic_Acid ~ 1, data = expansion_na, family = binomial)
 AIC(glm_exp, glm_exp_null)   # expansion rate explains more than the null model
 summary(glm_exp)   # expansion rate DOES significantly affect mevalonic acid presence
 
+ggplot(expansion_na, aes(x = Expansion, y = Mevalonic_Acid)) +
+    geom_point() +
+    theme_classic()
+plot(glm_exp)
+
 
 # combining expansion rate and trichome density into one model 
 combo_na <- ingatraits %>% 
                 drop_na(c(Trichome_Density, Expansion, Mevalonic_Acid))
 
-glm_combo <- glm(Mevalonic_Acid ~ Expansion, data = expansion_na, family = binomial)
-glm_combo_null <- glm(Mevalonic_Acid ~ 1, data = expansion_na, family = binomial)
+glm_combo <- glm(Mevalonic_Acid ~ Expansion + Trichome_Density, data = combo_na, family = binomial)
+glm_combo_int <- glm(Mevalonic_Acid ~ Expansion*Trichome_Density, data = combo_na, family = binomial)
+glm_combo_null <- glm(Mevalonic_Acid ~ 1, data = combo_na, family = binomial)
 
+AIC(glm_combo, glm_combo_int, glm_combo_null)  # both better than null model, no interaction is best
+summary(glm_combo)
+
+# checking for overdispersion (residual deviance/residual DF)
+22.865/23    # is just <1 = no overdispersion 
+
+# creating new univariate models using the combo data to see if the results are similar
+glm_exp2 <- glm(Mevalonic_Acid ~ Expansion, data = combo_na, family = binomial)
+summary(glm_exp)
+summary(glm_exp2)  # they produce the exact same results = good!
+
+glm_den2 <- glm(Mevalonic_Acid ~ Trichome_Density, data = combo_na, family = binomial)
+summary(glm_den)
+summary(glm_den2)  # don't produce the exact same results, but still non-significant and overdispersed
+
+# comparing models (univariate vs. multivariate)
+AIC(glm_exp2, glm_den2, glm_combo)  # the combination of variables is the best option
+
+
+# checking assumptions of the model
+par(mfrow = c(1,2))
+plot(resid(glm_combo) ~ Expansion, data = combo_na)
+plot(resid(glm_combo) ~ Trichome_Density, data = combo_na)
+dev.off()
+
+# visualizing the GLM
+glmvis <- ggPredict(glm_exp, point = TRUE, jitter = TRUE)  # can see points better with jitter added
+(glm_plot <- glmvis +
+                theme_classic())
+
+glmvis_both <- ggPredict(glm_combo, point = TRUE, jitter = TRUE)
+(glm_plot2 <- glmvis_both +
+                theme_classic())     # just doesn't make sense visually to include trichome density
+
+ggsave(glm_plot, file = "mevalonic_expansion.png", width = 4, height = 4, units = c("in"),
+       path = "Figures/")
