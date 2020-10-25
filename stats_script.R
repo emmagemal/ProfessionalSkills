@@ -12,6 +12,7 @@ library(ggpubr)
 library(ggsci)
 library(lmtest)
 library(car)
+library(mvShapiroTest)
 library(ggiraphExtra)
 
 # loading the data
@@ -165,6 +166,7 @@ anova(p_hab_c_int)   # checking results if we used type 1 error (the default)
 
 # checking assumptions 
 hist(residuals(p_hab_c_int), breaks = 10)   # residuals not normally distributed
+shapiro.test(resid(p_hab_c_int))  # p-value is << 0.05, so it is NOT normally distributed
 
 plot(p_hab_c_int)  # seems like the relationship may be non-linear, or heteroskedasticity is present
                    # there are a few outliers that may be causing non-normality 
@@ -180,18 +182,23 @@ bptest(p_hab_c_int)  # p > 0.05, there is no heteroskedasticity
 chem_na_less <- chem_na[-c(28, 10), ]
 p_hab_c_int2 <- lm(P_Leaf ~ Habitat_new*C_Leaf, data = chem_na_less)
 
+hist(residuals(p_hab_c_int2), breaks = 10)  # doesn't exactly look normally distributed
+shapiro.test(resid(p_hab_c_int2))  # it IS normally distributed 
 plot(p_hab_c_int2)
 bptest(p_hab_c_int2)  # still no heteroskedasticity
 
 # log transforming P to remove non-linearity and leftover non-normality of residuals
 p_hab_c_int3 <- lm(logP_Leaf ~ Habitat_new*C_Leaf, data = chem_na_less)
 
+hist(residuals(p_hab_c_int3), breaks = 10)  # looks normally distributed now
+shapiro.test(resid(p_hab_c_int3))  # it IS normally distributed 
 plot(p_hab_c_int3)
 bptest(p_hab_c_int3)   # still no heteroskedasticity
 
-# running a new ANCOVA test
-Anova(p_hab_c_int3, type = "III") 
-anova(p_hab_c_int3)  # default of type 1 error 
+
+# running a new ANCOVA test, using non-log transformed model
+Anova(p_hab_c_int2, type = "III") 
+anova(p_hab_c_int2)  # default of type 1 error 
 
 
 
@@ -258,6 +265,8 @@ AIC(glm_exp2, glm_den2, glm_combo)  # the combination of variables is the best o
 
 
 # checking assumptions of the model
+mvShapiro.Test(resid(glm_combo))
+
 par(mfrow = c(1,2))
 plot(resid(glm_combo) ~ Expansion, data = combo_na)
 plot(resid(glm_combo) ~ Trichome_Density, data = combo_na)
