@@ -6,8 +6,6 @@
 
 ## LIBRARY ----
 library(tidyverse)
-library(tidyr)  # to ensure 'drop_na' is able to be run (wasn't found in tidyverse)
-library(stringr)  # to ensure 'str_replace_all' is able to run (wasn't found in tidyverse)
 library(ggpubr)
 library(ggsci)
 library(lmtest)
@@ -222,7 +220,7 @@ summary(glm_den)   # trichome density does not significantly affect mevalonic ac
 ggplot(density_na, aes(x = Trichome_Density, y = Mevalonic_Acid)) +
     geom_point() +
     theme_classic()
-plot(glm_den)
+plot(glm_den)   
 
 # making a GLM for expansion rate and mevalonic acid 
 glm_exp <- glm(Mevalonic_Acid ~ Expansion, data = expansion_na, family = binomial)
@@ -264,22 +262,10 @@ summary(glm_den2)  # don't produce the exact same results, but still non-signifi
 AIC(glm_exp2, glm_den2, glm_combo)  # the combination of variables is the best option
 
 
-# checking assumptions of the model
-mvShapiro.Test(resid(glm_combo))
-
-par(mfrow = c(1,2))
-plot(resid(glm_combo) ~ Expansion, data = combo_na)
-plot(resid(glm_combo) ~ Trichome_Density, data = combo_na)
-dev.off()
-
 # visualizing the GLM
-glmvis <- ggPredict(glm_exp, point = TRUE, jitter = TRUE)  # can see points better with jitter added
-(glm_plot <- glmvis +
-                theme_classic())
-
 glmvis_both <- ggPredict(glm_combo, point = TRUE, jitter = TRUE)
-(glm_plot2 <- glmvis_both +
-                theme_classic())     # just doesn't make sense visually to include trichome density
+(glm_plot <- glmvis_both +
+                theme_classic())    
 
 ggsave(glm_plot, file = "mevalonic_expansion.png", width = 4, height = 4, units = c("in"),
        path = "Figures/")
