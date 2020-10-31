@@ -1,7 +1,7 @@
 # Professional Skills Statistical Assessment
 # Emma Gemal, s1758915@sms.ed.ac.uk
 # University of Edinburgh
-# Last updated: 25 October 2020
+# Last updated: 28 October 2020
 
 
 ## LIBRARY ----
@@ -10,18 +10,19 @@ library(ggpubr)
 library(ggsci)
 library(lmtest)
 library(car)
-library(mvShapiroTest)
 library(ggiraphExtra)
+
 
 # loading the data
 ingatraits <- read.csv("Inga_traits.csv")
 str(ingatraits)  # checking the data loaded properly 
 
+
 ## EXERCISE 1: HISTOGRAMS & NORMALITY ----
 # creating a histogram of leaf area 
 # checking distribution of data at a variety of binwidths 
 (leafarea_hist <- ggplot(ingatraits, aes(x = Leaf_Area)) +
-                    xlab(expression(paste("Leaf Area", ' ', (cm^-2), sep = ''))) +
+                    xlab(expression(paste("Leaf Area", ' ', (cm^2), sep = ''))) +
                     ylab("Frequency") +
                     geom_histogram(binwidth = 5,
                                    color = "black") +
@@ -31,7 +32,7 @@ str(ingatraits)  # checking the data loaded properly
                     scale_y_continuous(expand = c(0,0)))
 
 (leafarea_hist2 <- ggplot(ingatraits, aes(x = Leaf_Area)) +
-                      xlab(expression(paste("Leaf Area", ' ', (cm^-2), sep = ''))) +
+                      xlab(expression(paste("Leaf Area", ' ', (cm^2), sep = ''))) +
                       ylab("Frequency") +
                       geom_histogram(binwidth = 10,
                                      color = "black") +
@@ -39,7 +40,7 @@ str(ingatraits)  # checking the data loaded properly
                       scale_y_continuous(expand = c(0,0)))
 
 (leafarea_hist3 <- ggplot(ingatraits, aes(x = Leaf_Area)) +
-                      xlab(expression(paste("Leaf Area", ' ', (cm^-2), sep = ''))) +
+                      xlab(expression(paste("Leaf Area", ' ', (cm^2), sep = ''))) +
                       ylab("Frequency") +
                       geom_histogram(binwidth = 30,
                                      color = "black") +
@@ -60,7 +61,7 @@ ingatraits <- ingatraits %>%
                   mutate(logLeaf_Area = log(Leaf_Area))
 
 (log_hist <- ggplot(ingatraits, aes(x = logLeaf_Area)) +
-                xlab(expression(paste("log(Leaf Area)", ' ', (cm^-2), sep = ''))) +
+                xlab(expression(paste("log(Leaf Area)", ' ', (cm^2), sep = ''))) +
                 ylab("Frequency") +
                 geom_histogram(binwidth = 0.15,
                                color = "black") +
@@ -261,11 +262,26 @@ summary(glm_den2)  # don't produce the exact same results, but still non-signifi
 # comparing models (univariate vs. multivariate)
 AIC(glm_exp2, glm_den2, glm_combo)  # the combination of variables is the best option
 
-
 # visualizing the GLM
-glmvis_both <- ggPredict(glm_combo, point = TRUE, jitter = TRUE)
-(glm_plot <- glmvis_both +
-                theme_classic())    
+(ggplot_exp <- ggplot(combo_na, aes(x = Expansion, y = Mevalonic_Acid)) + 
+                 geom_point(size = 2, color = "black", alpha = 0.5) + 
+                 stat_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE,
+                             color = "black") +
+                 xlab("Expansion Rate (%/day)") +
+                 ylab("Probability of Mevalonic Acid Production") +
+                 theme_classic())
 
-ggsave(glm_plot, file = "mevalonic_expansion.png", width = 4, height = 4, units = c("in"),
+ggsave(ggplot_exp, file = "mevalonic_expansion.png", width = 4, height = 4, units = c("in"),
+       path = "Figures/")
+
+
+(ggplot_den <- ggplot(combo_na, aes(x = Trichome_Density, y = Mevalonic_Acid)) + 
+                 geom_point(size = 2, color = "black", alpha = 0.5) + 
+                 stat_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE,
+                             color = "black") +
+                 xlab(expression(paste("Trichome Density", ' ', (hair/cm^2), sep = ''))) +
+                 ylab("Probability of Mevalonic Acid Production") +
+                 theme_classic())
+
+ggsave(ggplot_den, file = "mevalonic_trichome.png", width = 4, height = 4, units = c("in"),
        path = "Figures/")
