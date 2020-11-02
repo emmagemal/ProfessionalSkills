@@ -11,6 +11,7 @@ library(ggsci)
 library(lmtest)
 library(car)
 library(ggiraphExtra)
+library(gridExtra)
 
 
 # loading the data
@@ -51,6 +52,11 @@ str(ingatraits)  # checking the data loaded properly
 
 ggsave(leafarea_hist, file = "leafarea_histogram.png", width = 4, height = 4, units = c("in"),
        path = "Figures/")
+
+# determining the range of leaf area
+max(ingatraits$Leaf_Area)
+min(ingatraits$Leaf_Area)
+max(ingatraits$Leaf_Area)-min(ingatraits$Leaf_Area)
 
 # checking for normality of leaf size using a Shapiro-Wilks test
 shapiro.test(ingatraits$Leaf_Area)   # is significant (p < 0.05), it is NOT normally distributed
@@ -153,14 +159,14 @@ chem_na <- chem_na %>%
                                                               "generalist" = "mixed")))
 
 # making a model new habitat groups and leaf [C] as predictors of leaf [P]
+p_null <- lm(P_Leaf ~ 1, data = chem_na)
 p_hab_c <- lm(P_Leaf ~ Habitat_new + C_Leaf, data = chem_na)
 p_hab_c_int <- lm(P_Leaf ~ Habitat_new*C_Leaf, data = chem_na)
 
-AIC(p_hab_c, p_hab_c_int)  # p_hab_c_int is just >2 AIC units lower than p_hab_c
+AIC(p_null, p_hab_c, p_hab_c_int)  # p_hab_c_int is just >2 AIC units lower than p_hab_c
 
 # conducting an ANCOVA (since the predictors are 1 categorical and 1 continuous variable)
-Anova(p_hab_c_int, type = "III")   # using type 3 error to try and avoid incorrect results
-anova(p_hab_c_int)   # checking results if we used type 1 error (the default)
+anova(p_hab_c_int)   
 
 
 # checking assumptions 
@@ -196,8 +202,7 @@ bptest(p_hab_c_int3)   # still no heteroskedasticity
 
 
 # running a new ANCOVA test, using non-log transformed model
-Anova(p_hab_c_int2, type = "III") 
-anova(p_hab_c_int2)  # default of type 1 error 
+anova(p_hab_c_int3)  
 
 
 
@@ -264,24 +269,43 @@ AIC(glm_exp2, glm_den2, glm_combo)  # the combination of variables is the best o
 
 # visualizing the GLM
 (ggplot_exp <- ggplot(combo_na, aes(x = Expansion, y = Mevalonic_Acid)) + 
-                 geom_point(size = 2, color = "black", alpha = 0.5) + 
+                 geom_point(size = 3, color = "black", alpha = 0.5) + 
                  stat_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE,
                              color = "black") +
                  xlab("Expansion Rate (%/day)") +
                  ylab("Probability of Mevalonic Acid Production") +
-                 theme_classic())
+                 theme_classic() +
+                 theme(axis.title.x = element_text(margin = margin(t = 10)),
+                       axis.title.y = element_text(margin = margin(r = 10))))
 
 ggsave(ggplot_exp, file = "mevalonic_expansion.png", width = 4, height = 4, units = c("in"),
        path = "Figures/")
 
 
 (ggplot_den <- ggplot(combo_na, aes(x = Trichome_Density, y = Mevalonic_Acid)) + 
-                 geom_point(size = 2, color = "black", alpha = 0.5) + 
+                 geom_point(size = 3, color = "black", alpha = 0.5) + 
                  stat_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE,
                              color = "black") +
                  xlab(expression(paste("Trichome Density", ' ', (hair/cm^2), sep = ''))) +
                  ylab("Probability of Mevalonic Acid Production") +
-                 theme_classic())
+                 theme_classic() +
+                 theme(axis.title.x = element_text(margin = margin(t = 10)),
+                       axis.title.y = element_text(margin = margin(r = 10))))
 
 ggsave(ggplot_den, file = "mevalonic_trichome.png", width = 4, height = 4, units = c("in"),
+       path = "Figures/")
+
+# removing y-axis label for trichome density for the panel
+(ggplot_den2 <- ggplot(combo_na, aes(x = Trichome_Density, y = Mevalonic_Acid)) + 
+                    geom_point(size = 3, color = "black", alpha = 0.5) + 
+                    stat_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE,
+                                color = "black") +
+                    xlab(expression(paste("Trichome Density", ' ', (hair/cm^2), sep = ''))) +
+                    ylab(" ") +
+                    theme_classic() +
+                    theme(axis.title.x = element_text(margin = margin(t = 10)),
+                          axis.title.y = element_text(margin = margin(r = 10))))
+
+panel <- grid.arrange(ggplot_exp, ggplot_den2, nrow = 1)
+ggsave(panel, file = "mevalonic_panel.png", width = 8, height = 4, units = c("in"),
        path = "Figures/")
