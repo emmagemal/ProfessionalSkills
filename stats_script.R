@@ -201,8 +201,8 @@ plot(p_hab_c_int3)
 bptest(p_hab_c_int3)   # still no heteroskedasticity
 
 
-# running a new ANCOVA test, using non-log transformed model
-anova(p_hab_c_int3)  
+# running a new ANCOVA test, using log-transformed model
+anova(p_hab_c_int2)  
 
 
 
